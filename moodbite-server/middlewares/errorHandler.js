@@ -22,9 +22,15 @@ const errorHandler = (err, req, res, next) => {
   } else if (err.name === "MoodRequired") {
     status = 400;
     message = "Please provide your mood status.";
-  } else if (err.name === "RecipeNotFound") {
+  } else if (err.name === "RecipeNotFound" || err.name === "NotFound") {
     status = 404;
-    message = "No recipes found for the suggested menu.";
+    message = err.message || "Data not found";
+  } else if (err.name === "BadRequest") {
+    status = 400;
+    message = err.message;
+  } else if (err.name === "Forbidden") {
+    status = 403;
+    message = err.message || "You are not authorized";
   }
 
   res.status(status).json({ message });
