@@ -18,7 +18,9 @@ class RecipeController {
         ingredients: Array.isArray(ingredients)
           ? JSON.stringify(ingredients)
           : ingredients,
-        instructions,
+        instructions: Array.isArray(instructions)
+          ? JSON.stringify(instructions)
+          : instructions,
         imageUrl,
         mood,
         UserId: req.user.id,
@@ -43,12 +45,18 @@ class RecipeController {
 
       const formattedRecipes = recipes.map((el) => {
         let parsedIngredients = el.ingredients;
+        let parsedInstructions = el.instructions;
         try {
           parsedIngredients = JSON.parse(el.ingredients);
+          parsedInstructions = JSON.parse(el.instructions);
         } catch (e) {
           // Kalau gagal parse (bukan JSON), biarkan apa adanya
         }
-        return { ...el.toJSON(), ingredients: parsedIngredients };
+        return {
+          ...el.toJSON(),
+          ingredients: parsedIngredients,
+          instructions: parsedInstructions,
+        };
       });
 
       res.status(200).json(formattedRecipes);

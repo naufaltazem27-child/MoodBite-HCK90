@@ -86,7 +86,7 @@ class AiController {
               instructions: item.instructions,
 
               // Data Spoonacular
-              image: recipeData.image,
+              imageUrl: recipeData.image,
               calories:
                 recipeData.nutrition.nutrients.find(
                   (n) => n.name === "Calories"
@@ -105,7 +105,7 @@ class AiController {
               title: item.name,
               ingredients: item.ingredients,
               instructions: item.instructions,
-              image: "https://placehold.co/600x400?text=No+Image+Found",
+              imageUrl: "https://placehold.co/600x400?text=No+Image+Found",
               calories: "N/A",
               protein: "N/A",
               fat: "N/A",
@@ -118,7 +118,7 @@ class AiController {
             title: item.name,
             ingredients: item.ingredients,
             instructions: item.instructions,
-            image: "https://placehold.co/600x400?text=API+Error",
+            imageUrl: "https://placehold.co/600x400?text=API+Error",
             calories: "N/A",
             protein: "N/A",
             fat: "N/A",
