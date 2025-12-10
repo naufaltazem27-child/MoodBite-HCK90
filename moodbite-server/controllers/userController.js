@@ -1,6 +1,7 @@
 const { User } = require("../models");
-const { comparePassword } = require("../helpers/bcrypt");
+const { comparePassword, hashPassword } = require("../helpers/bcrypt");
 const { signToken } = require("../helpers/jwt");
+const { OAuth2Client } = require("google-auth-library");
 
 class UserController {
   static async register(req, res, next) {
@@ -90,6 +91,45 @@ class UserController {
         access_token,
         username: user.username,
         message: "Google Login Success",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updatePassword(req, res, next) {
+    try {
+      const { newPassword } = req.body;
+      const userId = req.user.id;
+
+      // Validasi Input
+      if (!newPassword) {
+        throw {
+          name: "BadRequest",
+          message: "New password is required",
+        };
+      }
+
+      if (newPassword.length < 5) {
+        throw {
+          name: "BadRequest",
+          message: "Password min 5 chars",
+        };
+      }
+
+      // Hash Password Baru (Manual karena hook kita cuma beforeCreate)
+      const hashedPassword = hashPassword(newPassword);
+
+      // Update ke database
+      await User.update(
+        {
+          password: hashedPassword,
+        },
+        { where: { id: userId } }
+      );
+
+      res.status(200).json({
+        message: "Password has been updated successfully",
       });
     } catch (error) {
       next(error);

@@ -11,6 +11,7 @@ router.post("/google-login", UserController.googleLogin);
 
 router.use(authentication);
 
+router.patch("/update-password", UserController.updatePassword);
 router.post("/gemini-recommend", AIController.getRecommendation);
 
 router.post("/recipes", RecipeController.createRecipe);
