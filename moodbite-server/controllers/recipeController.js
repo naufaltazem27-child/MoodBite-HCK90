@@ -5,7 +5,17 @@ class RecipeController {
   static async createRecipe(req, res, next) {
     try {
       // Data ini dikirim dari Frontend (hasil output dari AI Controller)
-      const { title, ingredients, instructions, imageUrl, mood } = req.body;
+      const {
+        title,
+        ingredients,
+        instructions,
+        imageUrl,
+        mood,
+        calories,
+        protein,
+        fat,
+        readyInMinutes,
+      } = req.body;
 
       if (!title) {
         throw { name: "BadRequest", message: "Recipe title is required" };
@@ -23,6 +33,10 @@ class RecipeController {
           : instructions,
         imageUrl,
         mood,
+        calories,
+        protein,
+        fat,
+        readyInMinutes,
         UserId: req.user.id,
       });
 
