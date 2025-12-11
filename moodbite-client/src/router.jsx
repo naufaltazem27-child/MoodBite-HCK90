@@ -3,6 +3,9 @@ import LoginPage from "./pages/loginPage";
 import HomePage from "./pages/homePage";
 import RecommendationPage from "./pages/RecommendationPage";
 import RegisterPage from "./pages/registerPage";
+import FavoritesPage from "./pages/FavoritPage";
+import RecipeDetailPage from "./pages/RecipeDetailPage";
+import ProfilePage from "./pages/ProfilPage";
 
 // Guard: Cek Login
 const authGuard = () => {
@@ -39,6 +42,21 @@ const router = createBrowserRouter([
   {
     path: "/recommendation",
     element: <RecommendationPage />,
+    loader: authGuard,
+  },
+  {
+    path: "/favorites",
+    element: <FavoritesPage />,
+    loader: authGuard,
+  },
+  {
+    path: "/recipes/:id",
+    element: <RecipeDetailPage />,
+    loader: authGuard,
+  },
+  {
+    path: "/profile",
+    element: <ProfilePage />,
     loader: authGuard,
   },
 ]);

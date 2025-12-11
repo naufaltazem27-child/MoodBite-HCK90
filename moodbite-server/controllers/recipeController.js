@@ -105,6 +105,41 @@ class RecipeController {
       next(error);
     }
   }
+
+  // 4. DETAIL: Detail info Resep
+  static async getRecipeById(req, res, next) {
+    try {
+      const { id } = req.params;
+      const recipe = await Recipe.findByPk(id);
+
+      if (!recipe) throw { name: "NotFound", message: "Recipe not found" };
+
+      if (recipe.UserId !== req.user.id) {
+        throw {
+          name: "Forbidden",
+          message: "This recipe belongs to another chef",
+        };
+      }
+
+      // Parse Ingredients & Instructions
+      let parsedIngredients = recipe.ingredients;
+      let parsedInstructions = recipe.instructions;
+      try {
+        parsedIngredients = JSON.parse(recipe.ingredients);
+      } catch (e) {}
+      try {
+        parsedInstructions = JSON.parse(recipe.instructions);
+      } catch (e) {}
+
+      res.status(200).json({
+        ...recipe.toJSON(),
+        ingredients: parsedIngredients,
+        instructions: parsedInstructions,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = RecipeController;

@@ -14,8 +14,13 @@ router.use(authentication);
 router.patch("/update-password", UserController.updatePassword);
 router.post("/gemini-recommend", AIController.getRecommendation);
 
+router.put("/profile", UserController.updateProfile);
+router.post("/request-otp", UserController.requestOtp);
+router.patch("/reset-password-otp", UserController.resetPasswordWithOtp);
+
 router.post("/recipes", RecipeController.createRecipe);
 router.get("/recipes", RecipeController.getRecipes);
+router.get("/recipes/:id", RecipeController.getRecipeById);
 router.delete("/recipes/:id", RecipeController.deleteRecipe);
 
 module.exports = router;

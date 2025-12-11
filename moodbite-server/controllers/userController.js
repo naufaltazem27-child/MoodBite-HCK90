@@ -2,6 +2,7 @@ const { User } = require("../models");
 const { comparePassword, hashPassword } = require("../helpers/bcrypt");
 const { signToken } = require("../helpers/jwt");
 const { OAuth2Client } = require("google-auth-library");
+const { sendOTP } = require("../helpers/email");
 
 class UserController {
   static async register(req, res, next) {
@@ -131,6 +132,87 @@ class UserController {
       res.status(200).json({
         message: "Password has been updated successfully",
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // UPDATE PROFILE : SELAIN PW
+  static async updateProfile(req, res, next) {
+    try {
+      const { username, phoneNumber, address } = req.body;
+      const user = await User.findByPk(req.user.id);
+      if (!user) {
+        throw {
+          name: "NotFound",
+        };
+      }
+
+      await user.update({ username, phoneNumber, address });
+      res.status(200).json({
+        message: "Profile updated successfully",
+        user: {
+          username: user.username,
+          email: user.email,
+          phoneNumber: user.phoneNumber,
+          address: user.address,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async requestOtp(req, res, next) {
+    try {
+      const user = await User.findByPk(req.user.id);
+      if (!user) {
+        throw { name: "NotFound" };
+      }
+
+      // Generate 6 digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      // Expired dalam 5 menit
+      const otpExpiration = new Date(new Date().getTime() + 5 * 60000);
+
+      await user.update({ otp, otpExpiration });
+
+      // Kirim Email via Resend
+      await sendOTP(user.email, otp);
+
+      res.status(200).json({ message: `OTP sent to ${user.email}` });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async resetPasswordWithOtp(req, res, next) {
+    try {
+      const { otp, newPassword } = req.body;
+      const user = await User.findByPk(req.user.id);
+
+      if (!user) {
+        throw { name: "NotFound" };
+      }
+
+      // Validasi OTP
+      if (user.otp !== otp) {
+        throw { name: "BadRequest", message: "Invalid OTP Code" };
+      }
+      if (new Date() > user.otpExpiration) {
+        throw { name: "BadRequest", message: "OTP Expired" };
+      }
+
+      // Hash & Update Password
+      const hashedPassword = hashPassword(newPassword);
+
+      await user.update({
+        password: hashedPassword,
+        otp: null,
+        otpExpiration: null,
+      });
+
+      res.status(200).json({ message: "Password successfully changed" });
     } catch (error) {
       next(error);
     }
