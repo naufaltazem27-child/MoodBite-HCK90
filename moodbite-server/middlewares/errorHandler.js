@@ -31,6 +31,12 @@ const errorHandler = (err, req, res, next) => {
   } else if (err.name === "Forbidden") {
     status = 403;
     message = err.message || "You are not authorized";
+  } else if (
+    err.name === "Unauthenticated" ||
+    err.name === "JsonWebTokenError"
+  ) {
+    status = 401;
+    message = err.message || "Invalid token or user not found";
   }
 
   res.status(status).json({ message });

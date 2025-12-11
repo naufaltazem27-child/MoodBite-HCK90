@@ -5,7 +5,6 @@ if (process.env.NODE_ENV !== "production") {
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const port = process.env.PORT || 3000;
 const router = require("./routes");
 const errorHandler = require("./middlewares/errorHandler");
 
@@ -39,6 +38,5 @@ app.use((err, req, res, next) => {
 });
 
 app.use(errorHandler);
-app.listen(port, () => {
-  console.log(`MoodBite Server running on port http://localhost:${port}`);
-});
+
+module.exports = app;

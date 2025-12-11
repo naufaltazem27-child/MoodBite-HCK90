@@ -3,29 +3,32 @@ const { User } = require("../models");
 
 const authentication = async (req, res, next) => {
   try {
-    // 1. Cek ada token ga di header?
-    const { authorization } = req.headers;
-    if (!authorization) {
-      throw { name: "Unauthorized" };
+    // 1. Cek apakah header authorization ada?
+    if (!req.headers.authorization) {
+      throw { name: "Unauthenticated" };
     }
 
-    // 2. Format token biasanya "Bearer <token>"
-    const access_token = authorization.split(" ")[1];
-    if (!access_token) {
-      throw { name: "Unauthorized" };
+    // 2. Ambil token (Bearer <token>)
+    const token = req.headers.authorization.split(" ")[1];
+    if (!token) {
+      throw { name: "Unauthenticated" };
     }
 
-    // 3. Verifikasi token
-    const payload = verifyToken(access_token);
+    // 3. Verifikasi Token
+    const payload = verifyToken(token);
 
-    // 4. Cari user di DB
+    // 4. Cek User di Database
     const user = await User.findByPk(payload.id);
     if (!user) {
-      throw { name: "Unauthorized" };
+      throw { name: "Unauthenticated" };
     }
 
-    // 5. Simpan data user ke request (biar bisa dipake di controller nanti)
-    req.user = { id: user.id, email: user.email };
+    // 5. Simpan data user ke request
+    req.user = {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+    };
 
     next();
   } catch (error) {
