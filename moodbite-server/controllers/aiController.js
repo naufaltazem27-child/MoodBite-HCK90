@@ -7,35 +7,15 @@ class AiController {
       const { mood } = req.body;
       if (!mood) throw { name: "MoodRequired" };
 
-      // === 1. TANYA GEMINI ===
+      // 1. GEMINI (Nama, Bahan, Cara Masak)
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-      // --- PERBAIKAN PROMPT DI SINI ---
       const prompt = `
         I am feeling ${mood}. 
-        Suggest 3 distinct meals that fit this mood. 
-        
-        CRITICAL INSTRUCTION FOR "name":
-        - Use VERY SIMPLE, STANDARD, and COMMON food names (e.g., "Chicken Steak", "Corn Porridge", "Creamy Mushroom Soup", "Fried Rice").
-        - DO NOT use flowery adjectives or creative descriptions (Avoid: "Grandma's Cozy Soup", "Zesty Lemon Chicken", "Hearty Stew").
-        - Keep the name short (max 3-4 words).
-
-        For each meal, provide:
-        1. 'name' (The simple food name)
-        2. 'ingredients' (List of strings WITH measurements, e.g., "1 cup Rice")
-        3. 'instructions' (Array of strings, step-by-step cooking guide)
-        
-        Return the result ONLY as a valid JSON array of objects.
-        Strict JSON Format example:
-        [
-          { 
-            "name": "Chicken Soup", 
-            "ingredients": ["500g Chicken", "1 liter Water"],
-            "instructions": ["Boil water", "Add chicken"]
-          }
-        ]
-        Do not add markdown formatting.
+        Suggest 3 distinct meals. Use SIMPLE, COMMON names (e.g. "Chicken Soup").
+        Provide: name, ingredients (strings with measurements), instructions (array of strings).
+        Return ONLY valid JSON array of objects.
       `;
 
       const result = await model.generateContent(prompt);
@@ -46,85 +26,76 @@ class AiController {
         .trim();
       const aiRecommendations = JSON.parse(responseText);
 
-      // === 2. CARI GAMBAR & NUTRISI DI SPOONACULAR ===
+      // 2. PARALLEL FETCH (Unsplash + Spoonacular)
       const recipePromises = aiRecommendations.map(async (item) => {
-        const spoonUrl = `https://api.spoonacular.com/recipes/complexSearch`;
-
-        // Helper function fetch
-        const fetchSpoonacular = async (queryName) => {
-          return await axios.get(spoonUrl, {
-            params: {
-              apiKey: process.env.SPOONACULAR_API_KEY,
-              query: queryName,
-              number: 1,
-              addRecipeNutrition: true,
-            },
-          });
-        };
-
+        // --- A. FETCH IMAGE DARI UNSPLASH ---
+        let imageUrl = "https://placehold.co/600x400?text=No+Image";
         try {
-          // Percobaan 1: Cari dengan nama dari Gemini (Sekarang sudah simple)
-          let response = await fetchSpoonacular(item.name);
-
-          // Percobaan 2 (Retry Logic): Jaga-jaga kalau masih tidak ketemu
-          if (response.data.results.length === 0) {
-            // Ambil 2 kata pertama saja. Ex: "Creamy Corn Soup" -> "Creamy Corn"
-            const simpleName = item.name.split(" ").slice(0, 2).join(" ");
-            console.log(
-              `Retry search for '${item.name}' using '${simpleName}'...`
-            );
-            response = await fetchSpoonacular(simpleName);
+          const unsplashRes = await axios.get(
+            "https://api.unsplash.com/search/photos",
+            {
+              params: {
+                query: item.name,
+                per_page: 1,
+                client_id: process.env.UNSPLASH_ACCESS_KEY,
+              },
+            }
+          );
+          if (unsplashRes.data.results.length > 0) {
+            imageUrl = unsplashRes.data.results[0].urls.regular;
           }
+        } catch (err) {
+          console.log("Unsplash Error:", err.message);
+        }
 
-          const recipeData = response.data.results[0];
+        // --- B. FETCH NUTRISI DARI SPOONACULAR ---
+        let nutrition = {
+          calories: "N/A",
+          protein: "N/A",
+          fat: "N/A",
+          readyInMinutes: 30,
+        };
+        try {
+          const spoonRes = await axios.get(
+            `https://api.spoonacular.com/recipes/complexSearch`,
+            {
+              params: {
+                apiKey: process.env.SPOONACULAR_API_KEY,
+                query: item.name,
+                number: 1,
+                addRecipeNutrition: true,
+              },
+            }
+          );
 
-          // DATA GABUNGAN
-          if (recipeData) {
-            return {
-              title: item.name,
-              ingredients: item.ingredients,
-              instructions: item.instructions,
-
-              // Data Spoonacular
-              imageUrl: recipeData.image,
+          const spoonData = spoonRes.data.results[0];
+          if (spoonData) {
+            nutrition = {
               calories:
-                recipeData.nutrition.nutrients.find(
-                  (n) => n.name === "Calories"
-                )?.amount + " kcal",
+                spoonData.nutrition.nutrients.find((n) => n.name === "Calories")
+                  ?.amount + " kcal",
               protein:
-                recipeData.nutrition.nutrients.find((n) => n.name === "Protein")
+                spoonData.nutrition.nutrients.find((n) => n.name === "Protein")
                   ?.amount + " g",
               fat:
-                recipeData.nutrition.nutrients.find((n) => n.name === "Fat")
-                  ?.amount + " g",
-              readyInMinutes: recipeData.readyInMinutes || 30,
-            };
-          } else {
-            // Fallback terakhir
-            return {
-              title: item.name,
-              ingredients: item.ingredients,
-              instructions: item.instructions,
-              imageUrl: "https://placehold.co/600x400?text=No+Image+Found",
-              calories: "N/A",
-              protein: "N/A",
-              fat: "N/A",
-              readyInMinutes: 30,
+                spoonData.nutrition.nutrients.find(
+                  (n) => n.name === "Fat" || n.name === "Total Fat"
+                )?.amount + " g",
+              readyInMinutes: spoonData.readyInMinutes || 30,
             };
           }
         } catch (err) {
-          console.log(`Error fetching details for ${item.name}:`, err.message);
-          return {
-            title: item.name,
-            ingredients: item.ingredients,
-            instructions: item.instructions,
-            imageUrl: "https://placehold.co/600x400?text=API+Error",
-            calories: "N/A",
-            protein: "N/A",
-            fat: "N/A",
-            readyInMinutes: 30,
-          };
+          console.log("Spoonacular Error:", err.message);
         }
+
+        // --- C. GABUNGKAN DATA ---
+        return {
+          title: item.name,
+          ingredients: item.ingredients,
+          instructions: item.instructions,
+          image: imageUrl, // Pakai gambar Unsplash
+          ...nutrition, // Spread data nutrisi
+        };
       });
 
       const finalRecipes = await Promise.all(recipePromises);
