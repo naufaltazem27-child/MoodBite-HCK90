@@ -217,6 +217,24 @@ class UserController {
       next(error);
     }
   }
+
+  static async getUserProfile(req, res, next) {
+    try {
+      const user = await User.findByPk(req.user.id, {
+        attributes: ["id", "email", "username", "phoneNumber", "address"],
+      });
+
+      if (!user) {
+        throw {
+          name: "NotFound",
+        };
+      }
+
+      res.status(200).json(user);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = UserController;

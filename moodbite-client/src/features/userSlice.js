@@ -53,12 +53,53 @@ export const registerUser = createAsyncThunk(
   }
 );
 
+export const updateUserProfile = createAsyncThunk(
+  "user/updateProfile",
+  async (formData, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const { data } = await api.put("/profile", formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Update nama di localStorage agar saat refresh nama baru tetap muncul
+      localStorage.setItem("username", data.user.username);
+
+      return data.user;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || { message: "Update failed" }
+      );
+    }
+  }
+);
+
+export const fetchUserProfile = createAsyncThunk(
+  "user/fetchProfile",
+  async (_, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const { data } = await api.get("/profile", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || { message: "Fetch failed" }
+      );
+    }
+  }
+);
+
 // --- SLICE (State Management) ---
 const userSlice = createSlice({
   name: "user",
   initialState: {
     isLoggedIn: !!localStorage.getItem("access_token"),
     username: localStorage.getItem("username") || "",
+    email: "",
+    phoneNumber: "",
+    address: "",
     status: "idle", // 'idle' | 'loading' | 'succeeded' | 'failed'
     error: null,
   },
@@ -107,15 +148,38 @@ const userSlice = createSlice({
         state.status = "loading";
         state.error = null;
       })
-      // Saat Login Sukses
+
       .addCase(registerUser.fulfilled, (state, action) => {
         state.status = "succeeded";
       })
-      // Saat Login Gagal
+
       .addCase(registerUser.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload?.message;
       });
+
+    builder
+      .addCase(updateUserProfile.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(updateUserProfile.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.username = action.payload.username;
+        state.phoneNumber = action.payload.phoneNumber;
+        state.address = action.payload.address;
+      })
+      .addCase(updateUserProfile.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload?.message;
+      });
+
+    builder.addCase(fetchUserProfile.fulfilled, (state, action) => {
+      state.status = "succeeded";
+      state.username = action.payload.username;
+      state.email = action.payload.email;
+      state.phoneNumber = action.payload.phoneNumber;
+      state.address = action.payload.address;
+    });
   },
 });
 

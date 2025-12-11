@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../features/userSlice";
 import Swal from "sweetalert2";
@@ -40,9 +40,12 @@ export default function Navbar() {
           <div className="bg-orange-100 p-2 rounded-full text-orange-600">
             <FaUtensils size={16} />
           </div>
-          <span className="font-bold text-lg tracking-tight text-gray-900 hidden sm:block">
+          <Link
+            to={"/"}
+            className="font-bold text-lg tracking-tight text-gray-900 hidden sm:block"
+          >
             MoodBite
-          </span>
+          </Link>
         </div>
 
         {/* Menu Links */}

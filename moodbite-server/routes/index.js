@@ -14,6 +14,7 @@ router.use(authentication);
 router.patch("/update-password", UserController.updatePassword);
 router.post("/gemini-recommend", AIController.getRecommendation);
 
+router.get("/profile", UserController.getUserProfile);
 router.put("/profile", UserController.updateProfile);
 router.post("/request-otp", UserController.requestOtp);
 router.patch("/reset-password-otp", UserController.resetPasswordWithOtp);
