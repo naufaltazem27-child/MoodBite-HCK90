@@ -29,6 +29,18 @@ app.use((err, req, res, next) => {
   } else if (err.name === "EmailPasswordRequired") {
     status = 400;
     message = "Email and Password are required";
+  } else if (err.name === "BadRequest") {
+    status = 400;
+    message = err.message || "Bad Request";
+  } else if (err.name === "MoodRequired") {
+    status = 400;
+    message = "Mood is required";
+  } else if (err.name === "NotFound") {
+    status = 404;
+    message = err.message || "Not Found";
+  } else if (err.name === "Unauthenticated") {
+    status = 401;
+    message = "Unauthenticated";
   } else if (err.name === "InvalidCredentials") {
     status = 401;
     message = "Invalid email or password";

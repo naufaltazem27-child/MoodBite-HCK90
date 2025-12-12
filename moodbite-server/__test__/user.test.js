@@ -108,3 +108,208 @@ describe("POST /login", () => {
     expect(response.body).toHaveProperty("message");
   });
 });
+
+// TEST CASE 3 : UPDATE PASSWORD
+describe("PATCH /update-password", () => {
+  let token;
+
+  beforeAll(async () => {
+    const response = await request(app).post("/login").send({
+      email: dummyUser.email,
+      password: dummyUser.password,
+    });
+    token = response.body.access_token;
+  });
+
+  test("200 Success Update Password", async () => {
+    const response = await request(app)
+      .patch("/update-password")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ newPassword: "newpass123" });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("message");
+  });
+
+  test("400 Failed Update Password - Missing newPassword", async () => {
+    const response = await request(app)
+      .patch("/update-password")
+      .set("Authorization", `Bearer ${token}`)
+      .send({});
+
+    expect(response.status).toBe(400);
+  });
+
+  test("400 Failed Update Password - Password Too Short", async () => {
+    const response = await request(app)
+      .patch("/update-password")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ newPassword: "123" });
+
+    expect(response.status).toBe(400);
+  });
+
+  test("401 Failed Update Password - No Token", async () => {
+    const response = await request(app)
+      .patch("/update-password")
+      .send({ newPassword: "newpass123" });
+
+    expect(response.status).toBe(401);
+  });
+});
+
+// TEST CASE 4 : UPDATE PROFILE
+describe("PUT /profile", () => {
+  let token;
+
+  beforeAll(async () => {
+    const response = await request(app).post("/login").send({
+      email: dummyUser.email,
+      password: "newpass123",
+    });
+    token = response.body.access_token;
+  });
+
+  test("200 Success Update Profile", async () => {
+    const response = await request(app)
+      .put("/profile")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        username: "Updated User",
+        phoneNumber: "08999999999",
+        address: "New Address",
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("message");
+    expect(response.body.user.username).toBe("Updated User");
+  });
+
+  test("401 Failed Update Profile - No Token", async () => {
+    const response = await request(app)
+      .put("/profile")
+      .send({
+        username: "Updated User",
+      });
+
+    expect(response.status).toBe(401);
+  });
+});
+
+// TEST CASE 5 : GET PROFILE
+describe("GET /profile", () => {
+  let token;
+
+  beforeAll(async () => {
+    const response = await request(app).post("/login").send({
+      email: dummyUser.email,
+      password: "newpass123",
+    });
+    token = response.body.access_token;
+  });
+
+  test("200 Success Get Profile", async () => {
+    const response = await request(app)
+      .get("/profile")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("email", dummyUser.email);
+  });
+
+  test("401 Failed Get Profile - No Token", async () => {
+    const response = await request(app)
+      .get("/profile");
+
+    expect(response.status).toBe(401);
+  });
+});
+
+// TEST CASE 6 : REQUEST OTP
+describe("POST /request-otp", () => {
+  let token;
+
+  beforeAll(async () => {
+    const response = await request(app).post("/login").send({
+      email: dummyUser.email,
+      password: "newpass123",
+    });
+    token = response.body.access_token;
+  });
+
+  test("200 Success Request OTP", async () => {
+    const response = await request(app)
+      .post("/request-otp")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("message");
+  });
+
+  test("401 Failed Request OTP - No Token", async () => {
+    const response = await request(app)
+      .post("/request-otp");
+
+    expect(response.status).toBe(401);
+  });
+});
+
+// TEST CASE 7 : RESET PASSWORD WITH OTP
+describe("PATCH /reset-password-otp", () => {
+  let token;
+  let validOtp;
+
+  beforeAll(async () => {
+    const response = await request(app).post("/login").send({
+      email: dummyUser.email,
+      password: "newpass123",
+    });
+    token = response.body.access_token;
+
+    // Request OTP first
+    await request(app)
+      .post("/request-otp")
+      .set("Authorization", `Bearer ${token}`);
+  });
+
+  test("200 Success Reset Password with OTP", async () => {
+    // Since OTP is mocked/generated, we need to fetch the user's OTP from DB
+    const { User } = require("../models");
+    const user = await User.findOne({ where: { email: dummyUser.email } });
+    validOtp = user.otp;
+
+    const response = await request(app)
+      .patch("/reset-password-otp")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        otp: validOtp,
+        newPassword: "resetpass123",
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("message");
+  });
+
+  test("400 Failed Reset Password - Invalid OTP", async () => {
+    const response = await request(app)
+      .patch("/reset-password-otp")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        otp: "000000",
+        newPassword: "resetpass123",
+      });
+
+    expect(response.status).toBe(400);
+  });
+
+  test("401 Failed Reset Password - No Token", async () => {
+    const response = await request(app)
+      .patch("/reset-password-otp")
+      .send({
+        otp: validOtp,
+        newPassword: "resetpass123",
+      });
+
+    expect(response.status).toBe(401);
+  });
+});
