@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1765505119987" clover="3.2.0">
-  <project timestamp="1765505119988" name="All files">
+<coverage generated="1765524476337" clover="3.2.0">
+  <project timestamp="1765524476337" name="All files">
     <metrics statements="333" coveredstatements="300" conditionals="124" coveredconditionals="96" methods="34" coveredmethods="33" elements="491" coveredelements="429" complexity="0" loc="333" ncloc="333" packages="6" files="13" classes="13"/>
     <package name="moodbite-server">
       <metrics statements="39" coveredstatements="39" conditionals="22" coveredconditionals="18" methods="1" coveredmethods="1"/>
